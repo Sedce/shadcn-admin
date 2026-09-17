@@ -18,10 +18,20 @@ type CameraWithPreview = CameraItem & {
 
 
 type CameraCardsProps = {
-  onGalleryChange?: (isOpen: boolean) => void
+  onGalleryChange?: (
+    isOpen: boolean,
+    albumId?: string | number
+  ) => void
+  startDate?: string
+  endDate?: string
 }
 
-export function CameraCards({ onGalleryChange }: CameraCardsProps) {
+
+export function CameraCards({
+  onGalleryChange,
+  startDate,
+  endDate,
+}: CameraCardsProps) {
   const accessToken = useAuthStore((state) => state.auth.accessToken)
   const [cameras, setCameras] = useState<CameraWithPreview[]>([])
   const [loading, setLoading] = useState(true)
@@ -138,15 +148,21 @@ export function CameraCards({ onGalleryChange }: CameraCardsProps) {
   if (selectedCamera) {
   return (
     <CameraGallery
-      key={String(selectedCamera.album)}
+      key={JSON.stringify([
+        selectedCamera.album,
+        startDate ?? '',
+        endDate ?? '',
+      ])}
       albumId={selectedCamera.album}
       cameraName={
         selectedCamera.name || `Camera ${selectedCamera.id}`
       }
+      startDate={startDate}
+      endDate={endDate}
       onBack={() => {
         setSelectedCamera(null)
         onGalleryChange?.(false)
-        }}
+      }}
     />
   )
 }
@@ -191,7 +207,7 @@ export function CameraCards({ onGalleryChange }: CameraCardsProps) {
                 type='button'
                 onClick={() => {
                 setSelectedCamera(camera)
-                onGalleryChange?.(true)
+                onGalleryChange?.(true, camera.album)
                 }}
                 aria-label={`Preview ${name}`}
                 className='block h-full w-full cursor-pointer rounded-xl text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'

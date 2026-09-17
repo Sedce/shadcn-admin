@@ -12,7 +12,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
 
   const isAdmin =
     Boolean(accessToken) &&
-    username.trim().toLowerCase() === 'cedez'
+    username.trim().toLowerCase() === 'cedezmarie'
 
   if (isAdmin) {
     return <>{children}</>

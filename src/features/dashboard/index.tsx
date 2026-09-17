@@ -17,10 +17,58 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { Analytics } from './components/analytics'
 import { CameraCards } from './components/camera-cards'
 import { WeatherCard } from './components/weather-card'
+import { format } from 'date-fns'
+import { type DateRange } from 'react-day-picker'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { useRef } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
 
 export function Dashboard() {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false)
   const [now, setNow] = useState(() => new Date())
+  const [dateDialogOpen, setDateDialogOpen] = useState(false)
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>()
+  const [photoRange, setPhotoRange] = useState<
+    { start: string; end: string } | undefined
+  >()
+  const accessToken = useAuthStore((state) => state.auth.accessToken)
+
+  const [selectedAlbumId, setSelectedAlbumId] = useState<
+    string | number | undefined
+  >()
+
+  const [latestVideoOpen, setLatestVideoOpen] = useState(false)
+  const [latestVideoLoading, setLatestVideoLoading] = useState(false)
+  const [latestVideoUrl, setLatestVideoUrl] = useState('')
+  const [latestVideoError, setLatestVideoError] = useState<string | null>(null)
+
+  const latestVideoRequest = useRef(0)
+
+function handleGalleryChange(
+  isOpen: boolean,
+  albumId?: string | number
+) {
+  setIsGalleryOpen(isOpen)
+  setSelectedAlbumId(isOpen ? albumId : undefined)
+
+  setPhotoRange(undefined)
+  setDraftRange(undefined)
+  setDateDialogOpen(false)
+
+  // Ignore any pending response for the previous camera.
+  latestVideoRequest.current += 1
+  setLatestVideoOpen(false)
+  setLatestVideoLoading(false)
+  setLatestVideoUrl('')
+  setLatestVideoError(null)
+}
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -29,6 +77,81 @@ export function Dashboard() {
 
     return () => window.clearInterval(interval)
   }, [])
+
+  async function viewLatestTimelapse() {
+  if (selectedAlbumId === undefined) return
+
+  const requestId = ++latestVideoRequest.current
+
+  setLatestVideoOpen(true)
+  setLatestVideoLoading(true)
+  setLatestVideoUrl('')
+  setLatestVideoError(null)
+
+  try {
+    const token =
+      sessionStorage.getItem('access_token') ||
+      accessToken ||
+      localStorage.getItem('access_token')
+
+    if (!token) throw new Error('Please sign in again.')
+
+    const response = await fetch(
+      `/photos/latest/timelapse/${encodeURIComponent(selectedAlbumId)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      throw new Error(
+        response.status === 404
+          ? 'No timelapse is available for this camera yet.'
+          : response.status === 401
+            ? 'Your session has expired. Please sign in again.'
+            : data?.message || 'Unable to load the latest timelapse.'
+      )
+    }
+
+    if (
+      typeof data?.generated_video_path !== 'string' ||
+      !data.generated_video_path.trim()
+    ) {
+      throw new Error('No timelapse is available for this camera yet.')
+    }
+
+    // Preserve your old /photos/ media URL convention.
+    const relativePath = data.generated_video_path
+      .trim()
+      .replace(/^\/+/, '')
+      .replace(/^photos\//, '')
+
+    const videoUrl = `/photos/${relativePath
+      .split('/')
+      .map((part: string) => encodeURIComponent(part))
+      .join('/')}`
+
+    if (requestId === latestVideoRequest.current) {
+      setLatestVideoUrl(videoUrl)
+    }
+  } catch (error) {
+    if (requestId === latestVideoRequest.current) {
+      setLatestVideoError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load the latest timelapse.'
+      )
+    }
+  } finally {
+    if (requestId === latestVideoRequest.current) {
+      setLatestVideoLoading(false)
+    }
+  }
+}
 
   return (
     <>
@@ -58,18 +181,26 @@ export function Dashboard() {
             <div>
               {isGalleryOpen ? (
                 <div className='flex flex-wrap gap-2'>
-                  <Button type='button' size='sm' disabled className='disabled:opacity-100'>
-                    Back to cameras
-                  </Button>
-                  <Button type='button' size='sm' disabled className='disabled:opacity-100'>
-                    Date range
+                  <Button
+                    type='button'
+                    size='sm'
+                    onClick={() => setDateDialogOpen(true)}
+                  >
+                    {photoRange
+                      ? `${photoRange.start} — ${photoRange.end}`
+                      : 'Date range'}
                   </Button>
                   <Button type='button' size='sm' disabled className='disabled:opacity-100'>
                     Generate timelapse
                   </Button>
-                  <Button type='button' size='sm' disabled className='disabled:opacity-100'>
-                    View latest timelapse
-                  </Button>
+                  <Button
+                  type='button'
+                  size='sm'
+                  disabled={selectedAlbumId === undefined || latestVideoLoading}
+                  onClick={() => void viewLatestTimelapse()}
+                >
+                  {latestVideoLoading ? 'Loading…' : 'View latest timelapse'}
+                </Button>
                 </div>
               ) : (
                 <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
@@ -178,13 +309,120 @@ export function Dashboard() {
                 </div>
               )}
             </div>
-            <CameraCards onGalleryChange={setIsGalleryOpen} />
+            <CameraCards
+              onGalleryChange={handleGalleryChange}
+              startDate={photoRange?.start}
+              endDate={photoRange?.end}
+            />
           </TabsContent>
           <TabsContent value='analytics' className='space-y-4'>
             <Analytics />
           </TabsContent>
         </Tabs>
       </Main>
+      <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
+      <DialogContent className='max-h-[90dvh] overflow-y-auto sm:max-w-md'>
+        <DialogHeader>
+          <DialogTitle>Filter photos by date</DialogTitle>
+          <DialogDescription>
+            Select a start and end date. Both days are included.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className='flex justify-center'>
+          <Calendar
+            mode='range'
+            selected={draftRange}
+            onSelect={setDraftRange}
+            numberOfMonths={1}
+            defaultMonth={draftRange?.from}
+          />
+        </div>
+
+        <div className='flex justify-end gap-2'>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() => {
+              setDraftRange(undefined)
+              setPhotoRange(undefined)
+              setDateDialogOpen(false)
+            }}
+          >
+            Clear
+          </Button>
+
+          <Button
+            type='button'
+            disabled={!draftRange?.from || !draftRange?.to}
+            onClick={() => {
+              if (!draftRange?.from || !draftRange?.to) return
+
+              setPhotoRange({
+                start: format(draftRange.from, 'yyyy-MM-dd'),
+                end: format(draftRange.to, 'yyyy-MM-dd'),
+              })
+
+              setDateDialogOpen(false)
+            }}
+          >
+            Apply
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    <Dialog
+  open={latestVideoOpen}
+  onOpenChange={(open) => {
+    setLatestVideoOpen(open)
+
+    if (!open) {
+      latestVideoRequest.current += 1
+      setLatestVideoUrl('')
+      setLatestVideoLoading(false)
+      setLatestVideoError(null)
+    }
+  }}
+>
+  <DialogContent className='max-h-[95dvh] overflow-y-auto sm:max-w-5xl'>
+    <DialogHeader>
+      <DialogTitle>Latest timelapse</DialogTitle>
+      <DialogDescription>
+        Most recent timelapse for the selected camera.
+      </DialogDescription>
+    </DialogHeader>
+
+    {latestVideoLoading && (
+      <p role='status' className='py-8 text-center text-muted-foreground'>
+        Loading latest timelapse…
+      </p>
+    )}
+
+    {latestVideoError && (
+      <p role='alert' className='text-sm text-destructive'>
+        {latestVideoError}
+      </p>
+    )}
+
+    {latestVideoOpen && latestVideoUrl && !latestVideoLoading && (
+      <video
+        key={latestVideoUrl}
+        src={latestVideoUrl}
+        controls
+        playsInline
+        preload='metadata'
+        onError={() =>
+          setLatestVideoError(
+            'Unable to play this video. Check that the media URL is accessible and the video format is supported.'
+          )
+        }
+        className='max-h-[70vh] w-full rounded-md bg-black'
+      >
+        Your browser does not support video playback.
+      </video>
+    )}
+  </DialogContent>
+</Dialog>
     </>
   )
 }

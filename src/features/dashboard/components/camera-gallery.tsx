@@ -20,6 +20,8 @@ type CameraGalleryProps = {
   albumId: string | number
   cameraName: string
   onBack: () => void
+  startDate?: string
+  endDate?: string
 }
 
 function toDataUrl(value?: string | null) {
@@ -39,6 +41,8 @@ export function CameraGallery({
   albumId,
   cameraName,
   onBack,
+  startDate,
+  endDate,
 }: CameraGalleryProps) {
   const accessToken = useAuthStore((state) => state.auth.accessToken)
 
@@ -75,80 +79,92 @@ export function CameraGallery({
     fullImage?.id === activeId ? fullImage?.src || '' : ''
   const imageSrc = fullSrc || toDataUrl(activePhoto?.thumbnail_data)
 
-  // Load thumbnails for the selected page.
-  useEffect(() => {
-    const controller = new AbortController()
+useEffect(() => {
+  const controller = new AbortController()
 
-    async function loadPhotos() {
-      setLoading(true)
-      setError(null)
+  async function loadPhotos() {
+    setLoading(true)
+    setError(null)
 
-      try {
-        if (!token) throw new Error('Please sign in to view photos.')
+    try {
+      if (!token) throw new Error('Please sign in to view photos.')
 
-        const response = await fetch(
-          `/photos/view_photos/${encodeURIComponent(albumId)}?page=${page}&limit=${pageSize}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          }
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(pageSize),
+      })
+
+      if (startDate && endDate) {
+        params.set('start_date', startDate)
+        params.set('end_date', endDate)
+      }
+
+      const response = await fetch(
+        `/photos/view_photos/${encodeURIComponent(albumId)}?${params.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          response.status === 401
+            ? 'Your session has expired. Please sign in again.'
+            : `Unable to load photos (${response.status}).`
         )
+      }
 
-        if (!response.ok) {
-          throw new Error(
-            response.status === 401
-              ? 'Your session has expired. Please sign in again.'
-              : `Unable to load photos (${response.status}).`
-          )
+      const data = await response.json()
+      const items = Array.isArray(data) ? data : data?.photos
+
+      if (
+        !Array.isArray(items) ||
+        !items.every(
+          (item) =>
+            item &&
+            (typeof item.id === 'string' || typeof item.id === 'number')
+        )
+      ) {
+        throw new Error('The server returned an unexpected photo list.')
+      }
+
+      const total = Array.isArray(data)
+        ? data.length
+        : Number(data.total ?? items.length)
+
+      if (!Number.isFinite(total) || total < 0) {
+        throw new Error('The server returned an invalid photo count.')
+      }
+
+      const pages = Math.max(1, Math.ceil(total / pageSize))
+
+      if (!controller.signal.aborted) {
+        setPageCount(pages)
+
+        if (page > pages) {
+          setPage(pages)
+        } else {
+          setPhotos(items)
         }
-
-        const data = await response.json()
-        const items = Array.isArray(data) ? data : data?.photos
-
-        if (
-          !Array.isArray(items) ||
-          !items.every(
-            (item) =>
-              item &&
-              (typeof item.id === 'string' || typeof item.id === 'number')
-          )
-        ) {
-          throw new Error('The server returned an unexpected photo list.')
-        }
-
-        const total = Array.isArray(data)
-          ? data.length
-          : Number(data.total ?? items.length)
-
-        if (!Number.isFinite(total) || total < 0) {
-          throw new Error('The server returned an invalid photo count.')
-        }
-
-        const pages = Math.max(1, Math.ceil(total / pageSize))
-
-        if (!controller.signal.aborted) {
-          setPageCount(pages)
-
-          if (page > pages) {
-            setPage(pages)
-          } else {
-            setPhotos(items)
-          }
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          setError(
-            error instanceof Error ? error.message : 'Unable to load photos.'
-          )
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoading(false)
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setError(
+          error instanceof Error ? error.message : 'Unable to load photos.'
+        )
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false)
       }
     }
+  }
 
-    void loadPhotos()
-    return () => controller.abort()
-  }, [albumId, page, reload, token])
+  void loadPhotos()
+
+  return () => controller.abort()
+}, [albumId, page, reload, token, startDate, endDate])
 
   // Load the selected full-size image, keeping thumbnails as a preview.
   useEffect(() => {
@@ -258,44 +274,6 @@ export function CameraGallery({
         ? index
         : (index + direction + photos.length) % photos.length
     )
-  }
-
-  async function deletePhoto() {
-    if (!activePhoto || deleting) return
-
-    const id = activePhoto.id
-
-    if (!window.confirm(`Delete photo ${id}? This cannot be undone.`)) return
-
-    setDeleting(true)
-    setViewerError(null)
-
-    try {
-      if (!token) throw new Error('Please sign in again.')
-
-      const response = await fetch(
-        `/photos/photo/${encodeURIComponent(id)}`,
-        {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(`Unable to delete photo (${response.status}).`)
-      }
-
-      fullCache.current.delete(id)
-      setActiveIndex(null)
-      setPhotos((current) => current.filter((photo) => photo.id !== id))
-      setReload((value) => value + 1)
-    } catch (error) {
-      setViewerError(
-        error instanceof Error ? error.message : 'Unable to delete photo.'
-      )
-    } finally {
-      setDeleting(false)
-    }
   }
 
   return (
@@ -446,13 +424,7 @@ export function CameraGallery({
               </>
             )}
 
-            <Button
-              variant='destructive'
-              disabled={deleting}
-              onClick={() => void deletePhoto()}
-            >
-              {deleting ? 'Deleting…' : 'Delete'}
-            </Button>
+
           </div>
         </DialogContent>
       </Dialog>
