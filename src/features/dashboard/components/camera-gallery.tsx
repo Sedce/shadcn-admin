@@ -60,7 +60,7 @@ export function CameraGallery({
   } | null>(null)
   const [loadingFull, setLoadingFull] = useState(false)
   const [viewerError, setViewerError] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting] = useState(false)
   const [blobUrl, setBlobUrl] = useState('')
 
   const fullCache = useRef(new Map<string | number, string>())
