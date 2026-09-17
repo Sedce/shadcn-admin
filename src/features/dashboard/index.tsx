@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -20,6 +20,15 @@ import { WeatherCard } from './components/weather-card'
 
 export function Dashboard() {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false)
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(new Date())
+    }, 1000)
+
+    return () => window.clearInterval(interval)
+  }, [])
 
   return (
     <>
@@ -64,16 +73,27 @@ export function Dashboard() {
                 </div>
               ) : (
                 <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-                  <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                <Card>
+                <CardHeader className='pb-2'>
                   <CardTitle className='text-sm font-medium'>
-                    
+                    Time & Date
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>1</div>
-                  <p className='text-xs text-muted-foreground'>
-                    s
+                  <div className='text-2xl font-bold tabular-nums'>
+                    {now.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}
+                  </div>
+                  <p className='mt-1 text-sm text-muted-foreground'>
+                    {now.toLocaleDateString([], {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
                   </p>
                 </CardContent>
               </Card>

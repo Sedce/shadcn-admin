@@ -41,19 +41,9 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
-          title: 'Tasks',
-          url: '/tasks',
-          icon: ListTodo,
-        },
-        {
-          title: 'Apps',
+          title: 'Archive',
           url: '/apps',
           icon: Package,
-        },
-        {
-          title: 'Users',
-          url: '/users',
-          icon: Users,
         },
         {
           title: 'Secured by Clerk',
@@ -75,6 +65,22 @@ export const sidebarData: SidebarData = {
         },
       ],
     },
+    {
+      title: 'Admin',
+      items: [
+        {
+          title: 'Cameras',
+          url: '/tasks',
+          icon: ListTodo,
+        },
+        {
+          title: 'Users',
+          url: '/users',
+          icon: Users,
+        },
+      ],
+    },
+
     // {
     //   title: 'Pages',
     //   items: [
