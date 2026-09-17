@@ -3,7 +3,6 @@ import { Camera as CameraIcon } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { Card } from '@/components/ui/card'
 import { CameraGallery } from './camera-gallery'
-import { Dialog } from '@/components/ui/dialog'
 
 
 type CameraItem = {

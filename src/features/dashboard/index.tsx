@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent} from '@/components/ui/tabs'
 import {
   Card,
   CardContent,
@@ -192,7 +192,8 @@ export function Dashboard() {
 const topNav = [
   {
     title: 'Overview',
+    href: '/',
     isActive: true,
     disabled: false,
-  }
+  },
 ]

@@ -21,14 +21,6 @@ import { apps } from './data/apps'
 
 const route = getRouteApi('/_authenticated/apps/')
 
-type AppType = 'all' | 'connected' | 'notConnected'
-
-const appText = new Map<AppType, string>([
-  ['all', 'All Apps'],
-  ['connected', 'Connected'],
-  ['notConnected', 'Not Connected'],
-])
-
 export function Apps() {
   const {
     filter = '',
@@ -38,7 +30,7 @@ export function Apps() {
   const navigate = route.useNavigate()
 
   const [sort, setSort] = useState(initSort)
-  const [appType, setAppType] = useState(type)
+  const [appType] = useState(type)
   const [searchTerm, setSearchTerm] = useState(filter)
 
   const filteredApps = apps
@@ -62,16 +54,6 @@ export function Apps() {
       search: (prev) => ({
         ...prev,
         filter: e.target.value || undefined,
-      }),
-    })
-  }
-
-  const handleTypeChange = (value: AppType) => {
-    setAppType(value)
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        type: value === 'all' ? undefined : value,
       }),
     })
   }
