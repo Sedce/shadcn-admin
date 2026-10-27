@@ -46,6 +46,8 @@ export function Tasks() {
 
   const [editingCamera, setEditingCamera] = useState<Camera | null>(null)
   const [cameraName, setCameraName] = useState('')
+  const [cameraAlbum, setCameraAlbum] = useState('')
+  const [cameraTimelapse, setCameraTimelapse] = useState('')
   const [savingName, setSavingName] = useState(false)
   const [nameError, setNameError] = useState<string | null>(null)
 
@@ -448,7 +450,7 @@ export function Tasks() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit camera name</DialogTitle>
+            <DialogTitle>Edit camera details</DialogTitle>
             <DialogDescription>
               Change the display name for this camera.
             </DialogDescription>
@@ -467,6 +469,42 @@ export function Tasks() {
                 className='text-sm font-medium'
               >
                 Camera name
+              </label>
+
+              <Input
+                id='edit-camera-name'
+                value={cameraName}
+                onChange={(event) => setCameraName(event.target.value)}
+                maxLength={255}
+                required
+                disabled={savingName}
+                autoFocus
+              />
+            </div>
+            <div className='space-y-2'>
+              <label
+                htmlFor='edit-camera-name'
+                className='text-sm font-medium'
+              >
+                Album
+              </label>
+
+              <Input
+                id='edit-camera-name'
+                value={cameraName}
+                onChange={(event) => setCameraName(event.target.value)}
+                maxLength={255}
+                required
+                disabled={savingName}
+                autoFocus
+              />
+            </div>
+            <div className='space-y-2'>
+              <label
+                htmlFor='edit-camera-name'
+                className='text-sm font-medium'
+              >
+                Timelapse
               </label>
 
               <Input

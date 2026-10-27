@@ -28,7 +28,7 @@ const numberFields = [
   { name: 'camera_id', label: 'Device camera ID' },
   { name: 'source', label: 'Source' },
   { name: 'album', label: 'Album' },
-  { name: 'timelapse', label: 'Timelapse interval (seconds)' },
+  { name: 'timelapse', label: 'Timelapse interval (seconds)'},
 ] as const
 
 export function AddCameraDialog({ onCreated }: Props) {
@@ -121,7 +121,7 @@ export function AddCameraDialog({ onCreated }: Props) {
         Add camera
       </Button>
 
-      <Dialog
+      <Dialog 
         open={open}
         onOpenChange={(nextOpen) => {
           if (!saving) setOpen(nextOpen)

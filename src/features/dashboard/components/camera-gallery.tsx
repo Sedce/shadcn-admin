@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { Button } from '@/components/ui/button'
+import { logoutAndRedirect } from '@/lib/logout'
+
 import {
   Dialog,
   DialogContent,
@@ -87,7 +89,10 @@ useEffect(() => {
     setError(null)
 
     try {
-      if (!token) throw new Error('Please sign in to view photos.')
+      if (!token) {
+        logoutAndRedirect()
+        return
+        }
 
       const params = new URLSearchParams({
         page: String(page),
@@ -107,13 +112,14 @@ useEffect(() => {
         }
       )
 
-      if (!response.ok) {
-        throw new Error(
-          response.status === 401
-            ? 'Your session has expired. Please sign in again.'
-            : `Unable to load photos (${response.status}).`
-        )
-      }
+      if (response.status === 401) {
+        logoutAndRedirect()
+        return
+        }
+
+    if (!response.ok) {
+        throw new Error(`Unable to load photos (${response.status}).`)
+}
 
       const data = await response.json()
       const items = Array.isArray(data) ? data : data?.photos
@@ -423,8 +429,6 @@ useEffect(() => {
                 </Button>
               </>
             )}
-
-
           </div>
         </DialogContent>
       </Dialog>

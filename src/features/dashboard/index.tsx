@@ -20,6 +20,7 @@ import { WeatherCard } from './components/weather-card'
 import { format } from 'date-fns'
 import { type DateRange } from 'react-day-picker'
 import { Calendar } from '@/components/ui/calendar'
+import { GenerateTimelapse } from './components/generate-timelapse'
 import {
   Dialog,
   DialogContent,
@@ -190,9 +191,10 @@ function handleGalleryChange(
                       ? `${photoRange.start} — ${photoRange.end}`
                       : 'Date range'}
                   </Button>
-                  <Button type='button' size='sm' disabled className='disabled:opacity-100'>
-                    Generate timelapse
-                  </Button>
+                  <GenerateTimelapse
+                    key={String(selectedAlbumId)}
+                    albumId={selectedAlbumId}
+                  />
                   <Button
                   type='button'
                   size='sm'

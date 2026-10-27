@@ -3,7 +3,7 @@ import { useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from '@tanstack/react-router'
 import { showSubmittedData } from '@/lib/show-submitted-data'
-import { cn } from '@/lib/utils'
+// import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -63,7 +63,7 @@ export function ProfileForm() {
     mode: 'onChange',
   })
 
-  const { fields, append } = useFieldArray({
+  const { append } = useFieldArray({
     name: 'urls',
     control: form.control,
   })
@@ -81,7 +81,7 @@ export function ProfileForm() {
             <FormItem>
               <FormLabel>Username</FormLabel>
               <FormControl>
-                <Input placeholder='shadcn' {...field} />
+                <Input placeholder='user' {...field} />
               </FormControl>
               <FormDescription>
                 This is your public display name. It can be your real name or a
@@ -139,7 +139,7 @@ export function ProfileForm() {
           )}
         />
         <div>
-          {fields.map((field, index) => (
+          {/* {fields.map((field, index) => (
             <FormField
               control={form.control}
               key={field.id}
@@ -159,8 +159,8 @@ export function ProfileForm() {
                 </FormItem>
               )}
             />
-          ))}
-          <Button
+          ))} */}
+          {/* <Button
             type='button'
             variant='outline'
             size='sm'
@@ -168,9 +168,9 @@ export function ProfileForm() {
             onClick={() => append({ value: '' })}
           >
             Add URL
-          </Button>
+          </Button> */}
         </div>
-        <Button type='submit'>Update profile</Button>
+        {/* <Button type='submit'>Update profile</Button> */}
       </form>
     </Form>
   )

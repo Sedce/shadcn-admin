@@ -21,7 +21,6 @@ const _userSchema = z.object({
   lastName: z.string(),
   username: z.string(),
   email: z.string(),
-  phoneNumber: z.string(),
   status: userStatusSchema,
   role: userRoleSchema,
   createdAt: z.coerce.date(),
